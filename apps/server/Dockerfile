@@ -16,9 +16,9 @@ COPY packages/auth packages/auth
 COPY packages/db packages/db
 COPY packages/config packages/config
 
-RUN bun run env:generate
+RUN bun run env:generate && chmod +x apps/server/start.sh
 
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["sh", "-c", "cd /app/packages/db && bunx drizzle-kit migrate && cd /app/apps/server && bun src/index.ts"]
+CMD ["sh", "apps/server/start.sh"]
