@@ -1,0 +1,6 @@
+{
+  "extends": "@ajudante/config/tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  }
+}

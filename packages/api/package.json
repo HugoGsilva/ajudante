@@ -1,0 +1,23 @@
+{
+  "name": "@ajudante/api",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ajudante/auth": "workspace:*",
+    "@ajudante/db": "workspace:*",
+    "@trpc/client": "catalog:",
+    "@trpc/server": "catalog:",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@ajudante/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
