@@ -6,6 +6,7 @@ import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 
 import Header from "@/components/header";
 import { ThemeProvider } from "@/components/theme-provider";
+import { authClient } from "@/lib/auth-client";
 import type { trpc } from "@/utils/trpc";
 
 import "../index.css";
@@ -36,17 +37,25 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
   }),
 });
 
+function Frame() {
+  const { data: session } = authClient.useSession();
+
+  return (
+    <div className="grid h-svh grid-rows-[auto_1fr]">
+      <Header />
+      <div className={session ? "overflow-y-auto pb-16 md:pb-0" : "overflow-y-auto"}>
+        <Outlet />
+      </div>
+    </div>
+  );
+}
+
 function RootComponent() {
   return (
     <>
       <HeadContent />
       <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange storageKey="vite-ui-theme">
-        <div className="grid h-svh grid-rows-[auto_1fr]">
-          <Header />
-          <div className="overflow-y-auto pb-16 md:pb-0">
-            <Outlet />
-          </div>
-        </div>
+        <Frame />
         <Toaster richColors />
       </ThemeProvider>
       {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-left" /> : null}

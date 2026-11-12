@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@ajudante/ui/components/dropdown-menu";
 import { Skeleton } from "@ajudante/ui/components/skeleton";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -21,13 +21,7 @@ export default function UserMenu() {
     return <Skeleton className="h-9 w-24" />;
   }
 
-  if (!session) {
-    return (
-      <Link to="/login">
-        <Button variant="outline">Entrar</Button>
-      </Link>
-    );
-  }
+  if (!session) return null;
 
   return (
     <DropdownMenu>

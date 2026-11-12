@@ -1,7 +1,6 @@
 import { formatBrl } from "@ajudante/api/brain/money";
 import { currentMonth, zonedNow } from "@ajudante/api/brain/time";
 import { Button } from "@ajudante/ui/components/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@ajudante/ui/components/card";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@ajudante/ui/components/empty";
 import { Input } from "@ajudante/ui/components/input";
 import { Skeleton } from "@ajudante/ui/components/skeleton";
@@ -12,6 +11,7 @@ import { toast } from "sonner";
 
 import { controlClass } from "@/components/control";
 import { Page } from "@/components/page";
+import { monthTitle } from "@/lib/month";
 import { queryClient, trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/financas")({
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/_auth/financas")({
 
 function FinancePage() {
   const [month, setMonth] = useState(() => currentMonth());
+  const [adding, setAdding] = useState(false);
   const [kind, setKind] = useState<"expense" | "income">("expense");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("outros");
@@ -39,6 +40,7 @@ function FinancePage() {
       onSuccess: async () => {
         setAmount("");
         setDescription("");
+        setAdding(false);
         toast.success("Lançamento anotado.");
         await invalidate();
       },
@@ -64,130 +66,114 @@ function FinancePage() {
   );
 
   return (
-    <Page title="Finanças">
-      <div className="flex flex-wrap gap-4">
-        <label className="flex w-full max-w-48 flex-col gap-2 text-sm text-muted-foreground">
-          Mês
+    <Page
+      title={monthTitle(month)}
+      action={
+        <input
+          type="month"
+          aria-label="Mês"
+          value={month}
+          onChange={(event) => setMonth(event.target.value)}
+          className={`${controlClass} w-40`}
+        />
+      }
+    >
+      {adding ? (
+        <form
+          className="flex flex-col gap-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            create.mutate({ kind, amount, categoryId, description, occurredOn });
+          }}
+        >
+          <select
+            value={kind}
+            aria-label="Tipo"
+            onChange={(event) => {
+              const next = event.target.value === "income" ? "income" : "expense";
+              setKind(next);
+              setCategoryId(next === "income" ? "entrada" : "outros");
+            }}
+            className={controlClass}
+          >
+            <option value="expense">Gasto</option>
+            <option value="income">Receita</option>
+          </select>
+          <Input
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            placeholder="12,50"
+            inputMode="decimal"
+            aria-label="Valor"
+          />
+          <select
+            value={categoryId}
+            aria-label="Categoria"
+            onChange={(event) => setCategoryId(event.target.value)}
+            className={controlClass}
+          >
+            {(options ?? []).map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.name}
+              </option>
+            ))}
+          </select>
+          <Input
+            value={description}
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Descrição"
+            aria-label="Descrição"
+          />
           <input
-            type="month"
-            value={month}
-            onChange={(event) => setMonth(event.target.value)}
+            type="date"
+            aria-label="Data"
+            value={occurredOn}
+            onChange={(event) => setOccurredOn(event.target.value)}
             className={controlClass}
           />
-        </label>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Lançamento manual</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            className="grid gap-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              create.mutate({ kind, amount, categoryId, description, occurredOn });
-            }}
-          >
-            <select
-              value={kind}
-              onChange={(event) => {
-                const next = event.target.value === "income" ? "income" : "expense";
-                setKind(next);
-                setCategoryId(next === "income" ? "entrada" : "outros");
-              }}
-              className={controlClass}
-            >
-              <option value="expense">Gasto</option>
-              <option value="income">Receita</option>
-            </select>
-            <Input
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              placeholder="12,50"
-              inputMode="decimal"
-            />
-            <select
-              value={categoryId}
-              onChange={(event) => setCategoryId(event.target.value)}
-              className={controlClass}
-            >
-              {(options ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            <Input
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="Descrição"
-            />
-            <input
-              type="date"
-              value={occurredOn}
-              onChange={(event) => setOccurredOn(event.target.value)}
-              className={controlClass}
-            />
-            <Button type="submit" className="w-full" disabled={create.isPending}>
+          <div className="grid grid-cols-2 gap-3">
+            <Button type="button" variant="outline" onClick={() => setAdding(false)}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={create.isPending}>
               Anotar
             </Button>
-          </form>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>CSV do Nubank</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 text-sm">
-          <p className="text-muted-foreground">
-            Fatura do cartão e extrato da conta são arquivos diferentes. O pagamento da fatura entra como
-            transferência e não soma no gasto.
-          </p>
-          <select
-            value={source}
-            onChange={(event) => setSource(event.target.value === "nubank_account" ? "nubank_account" : "nubank_card")}
-            className={controlClass}
-          >
-            <option value="nubank_card">Fatura do cartão</option>
-            <option value="nubank_account">Extrato da conta</option>
-          </select>
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            disabled={importCsv.isPending}
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (!file) return;
-              importCsv.mutate({ csv: await file.text(), source });
-            }}
-            className="text-base"
-          />
-        </CardContent>
-      </Card>
+          </div>
+        </form>
+      ) : (
+        <Button type="button" className="w-full" onClick={() => setAdding(true)}>
+          Anotar lançamento
+        </Button>
+      )}
+
       {list.isLoading ? <Skeleton className="h-40" /> : null}
       {list.isError ? <p className="text-sm text-destructive">{list.error.message}</p> : null}
       {list.data && list.data.length === 0 ? (
         <Empty>
           <EmptyHeader>
             <EmptyTitle>Nada neste mês</EmptyTitle>
-            <EmptyDescription>Os lançamentos confirmados aparecem aqui.</EmptyDescription>
+            <EmptyDescription>Um lançamento anotado aparece aqui.</EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : null}
       {list.data && list.data.length > 0 ? (
-        <div className="flex flex-col divide-y divide-border border border-border">
+        <ul className="flex flex-col divide-y divide-border border-y border-border">
           {list.data.map((row) => (
-            <div key={row.id} className="grid gap-2 px-3 py-3 text-sm md:grid-cols-[7rem_1fr_10rem_8rem] md:items-center">
-              <span className="text-muted-foreground">{row.occurredOn.split("-").reverse().join("/")}</span>
-              <span>
-                {row.description}
-                <span className="ml-2 text-xs text-muted-foreground">{row.kind === "transfer" ? "transferência" : row.source}</span>
-              </span>
-              {row.kind === "transfer" ? (
-                <span className="text-muted-foreground">Transferência</span>
-              ) : (
+            <li key={row.id} className="flex flex-col gap-2 py-3">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm">{row.description}</p>
+                <p className="font-mono text-sm">
+                  {formatBrl(row.kind === "expense" ? -row.amountCents : row.amountCents)}
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {row.occurredOn.split("-").reverse().join("/")}
+                {" · "}
+                {row.kind === "transfer" ? "transferência" : row.source}
+              </p>
+              {row.kind === "transfer" ? null : (
                 <select
+                  aria-label={`Categoria de ${row.description}`}
                   value={row.categoryId ?? ""}
                   onChange={(event) =>
                     update.mutate({
@@ -205,13 +191,42 @@ function FinancePage() {
                   ))}
                 </select>
               )}
-              <span className="md:text-right">
-                {formatBrl(row.kind === "expense" ? -row.amountCents : row.amountCents)}
-              </span>
-            </div>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : null}
+
+      <details className="text-sm">
+        <summary className="cursor-pointer text-muted-foreground">Importar CSV do Nubank</summary>
+        <div className="mt-3 flex flex-col gap-3">
+          <p className="text-muted-foreground">
+            Fatura do cartão e extrato da conta são arquivos diferentes. O pagamento da fatura entra como
+            transferência e não soma no gasto.
+          </p>
+          <select
+            aria-label="Tipo de CSV"
+            value={source}
+            onChange={(event) => setSource(event.target.value === "nubank_account" ? "nubank_account" : "nubank_card")}
+            className={controlClass}
+          >
+            <option value="nubank_card">Fatura do cartão</option>
+            <option value="nubank_account">Extrato da conta</option>
+          </select>
+          <input
+            type="file"
+            accept=".csv,text/csv"
+            aria-label="Arquivo CSV"
+            disabled={importCsv.isPending}
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file) return;
+              importCsv.mutate({ csv: await file.text(), source });
+            }}
+            className="text-base"
+          />
+        </div>
+      </details>
     </Page>
   );
 }
