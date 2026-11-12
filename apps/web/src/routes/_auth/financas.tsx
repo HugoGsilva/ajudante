@@ -10,6 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { controlClass } from "@/components/control";
 import { Page } from "@/components/page";
 import { queryClient, trpc } from "@/utils/trpc";
 
@@ -65,13 +66,13 @@ function FinancePage() {
   return (
     <Page title="Finanças">
       <div className="flex flex-wrap gap-4">
-        <label className="flex w-40 flex-col gap-1 text-xs text-muted-foreground">
+        <label className="flex w-full max-w-48 flex-col gap-2 text-sm text-muted-foreground">
           Mês
           <input
             type="month"
             value={month}
             onChange={(event) => setMonth(event.target.value)}
-            className="h-8 border border-input bg-transparent px-2 text-xs text-foreground"
+            className={controlClass}
           />
         </label>
       </div>
@@ -81,7 +82,7 @@ function FinancePage() {
         </CardHeader>
         <CardContent>
           <form
-            className="grid gap-3 md:grid-cols-5"
+            className="grid gap-3"
             onSubmit={(event) => {
               event.preventDefault();
               create.mutate({ kind, amount, categoryId, description, occurredOn });
@@ -94,16 +95,21 @@ function FinancePage() {
                 setKind(next);
                 setCategoryId(next === "income" ? "entrada" : "outros");
               }}
-              className="h-8 border border-input bg-transparent px-2 text-xs"
+              className={controlClass}
             >
               <option value="expense">Gasto</option>
               <option value="income">Receita</option>
             </select>
-            <Input value={amount} onChange={(event) => setAmount(event.target.value)} placeholder="12,50" />
+            <Input
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="12,50"
+              inputMode="decimal"
+            />
             <select
               value={categoryId}
               onChange={(event) => setCategoryId(event.target.value)}
-              className="h-8 border border-input bg-transparent px-2 text-xs"
+              className={controlClass}
             >
               {(options ?? []).map((item) => (
                 <option key={item.id} value={item.id}>
@@ -120,9 +126,9 @@ function FinancePage() {
               type="date"
               value={occurredOn}
               onChange={(event) => setOccurredOn(event.target.value)}
-              className="h-8 border border-input bg-transparent px-2 text-xs"
+              className={controlClass}
             />
-            <Button type="submit" disabled={create.isPending}>
+            <Button type="submit" className="w-full" disabled={create.isPending}>
               Anotar
             </Button>
           </form>
@@ -140,7 +146,7 @@ function FinancePage() {
           <select
             value={source}
             onChange={(event) => setSource(event.target.value === "nubank_account" ? "nubank_account" : "nubank_card")}
-            className="h-8 max-w-xs border border-input bg-transparent px-2 text-xs"
+            className={controlClass}
           >
             <option value="nubank_card">Fatura do cartão</option>
             <option value="nubank_account">Extrato da conta</option>
@@ -155,7 +161,7 @@ function FinancePage() {
               if (!file) return;
               importCsv.mutate({ csv: await file.text(), source });
             }}
-            className="text-xs"
+            className="text-base"
           />
         </CardContent>
       </Card>
@@ -190,7 +196,7 @@ function FinancePage() {
                       kind: row.kind === "income" ? "income" : "expense",
                     })
                   }
-                  className="h-8 border border-input bg-transparent px-2 text-xs"
+                  className={controlClass}
                 >
                   {(row.kind === "income" ? categories.data?.income : categories.data?.expense)?.map((item) => (
                     <option key={item.id} value={item.id}>

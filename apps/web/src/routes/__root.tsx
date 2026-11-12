@@ -24,7 +24,7 @@ export const Route = createRootRouteWithContext<RouterAppContext>()({
       },
       {
         name: "description",
-        content: "Segundo cérebro: gastos, tarefas e memória.",
+        content: "Gastos, tarefas e memória.",
       },
     ],
     links: [
@@ -40,20 +40,17 @@ function RootComponent() {
   return (
     <>
       <HeadContent />
-      <ThemeProvider
-        attribute="class"
-        defaultTheme="dark"
-        disableTransitionOnChange
-        storageKey="vite-ui-theme"
-      >
-        <div className="grid grid-rows-[auto_1fr] h-svh">
+      <ThemeProvider attribute="class" defaultTheme="dark" disableTransitionOnChange storageKey="vite-ui-theme">
+        <div className="grid h-svh grid-rows-[auto_1fr]">
           <Header />
-          <Outlet />
+          <div className="overflow-y-auto pb-16 md:pb-0">
+            <Outlet />
+          </div>
         </div>
         <Toaster richColors />
       </ThemeProvider>
-      <TanStackRouterDevtools position="bottom-left" />
-      <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" />
+      {import.meta.env.DEV ? <TanStackRouterDevtools position="bottom-left" /> : null}
+      {import.meta.env.DEV ? <ReactQueryDevtools position="bottom" buttonPosition="bottom-right" /> : null}
     </>
   );
 }

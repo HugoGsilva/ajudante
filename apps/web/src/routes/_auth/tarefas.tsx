@@ -11,6 +11,7 @@ import { toast } from "sonner";
 
 import { formatDateTimePt } from "@ajudante/api/brain/time";
 
+import { controlClass } from "@/components/control";
 import { Page } from "@/components/page";
 import { queryClient, trpc } from "@/utils/trpc";
 
@@ -61,7 +62,7 @@ function TasksPage() {
   return (
     <Page title="Tarefas e ideias">
       <form
-        className="flex gap-2"
+        className="flex flex-col gap-3 sm:flex-row sm:items-center"
         onSubmit={(event) => {
           event.preventDefault();
           const when = notifyAt ? new Date(notifyAt) : null;
@@ -78,9 +79,9 @@ function TasksPage() {
           value={notifyAt}
           onChange={(event) => setNotifyAt(event.target.value)}
           aria-label="Aviso"
-          className="h-8 border border-input bg-transparent px-2 text-xs"
+          className={controlClass}
         />
-        <Button type="submit" disabled={createTask.isPending}>
+        <Button type="submit" className="sm:w-auto" disabled={createTask.isPending}>
           Adicionar
         </Button>
       </form>

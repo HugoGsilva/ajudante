@@ -4,6 +4,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
+import { ensureOwnerAccount } from "@ajudante/auth";
+
 import { createContext } from "./context";
 import { ENV } from "./env.server";
 import { startScheduler } from "./jobs/scheduler";
@@ -74,6 +76,12 @@ if (telegram && ENV.TELEGRAM_MODE === "webhook") {
 }
 
 startScheduler({ db, gemini, telegram, timeZone: turnConfig.timeZone });
+
+await ensureOwnerAccount(auth, db, {
+  email: ENV.OWNER_EMAIL,
+  password: ENV.OWNER_PASSWORD,
+  name: "Hugo",
+});
 
 async function poll(
   client: NonNullable<typeof telegram>,

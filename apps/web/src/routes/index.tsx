@@ -1,9 +1,17 @@
+import { Button } from "@ajudante/ui/components/button";
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 
+import { authClient } from "@/lib/auth-client";
 import { trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/")({
+  beforeLoad: async () => {
+    const session = await authClient.getSession();
+    if (session.data) {
+      throw redirect({ to: "/dashboard" });
+    }
+  },
   component: HomeComponent,
 });
 
@@ -11,24 +19,22 @@ function HomeComponent() {
   const healthCheck = useQuery(trpc.healthCheck.queryOptions());
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-10">
-      <div className="flex flex-col gap-2">
-        <p className="text-sm text-muted-foreground">Assistente pessoal</p>
-        <h1 className="text-3xl font-medium tracking-tight">Segundo cérebro</h1>
-        <p className="max-w-xl text-sm text-muted-foreground">
-          O Telegram anota gasto, tarefa e ideia. Este painel mostra o mês, corrige categoria e
-          importa o CSV do Nubank.
+    <main className="mx-auto flex min-h-[70svh] w-full max-w-3xl flex-col justify-center gap-8 px-4 py-10">
+      <div className="flex flex-col gap-3">
+        <p className="text-sm text-muted-foreground">ajudante</p>
+        <h1 className="max-w-sm text-4xl font-medium tracking-tight">O mês, numa tela.</h1>
+        <p className="max-w-sm text-base text-muted-foreground">
+          O Telegram anota o gasto e o lembrete. Aqui você confere o saldo, corrige a categoria e importa o CSV.
         </p>
       </div>
-      <div className="flex items-center gap-2 text-sm">
-        <span className={`size-2 ${healthCheck.data ? "bg-primary" : "bg-destructive"}`} />
-        <span className="text-muted-foreground">
+      <div className="flex flex-col items-start gap-3">
+        <Link to="/login">
+          <Button>Entrar</Button>
+        </Link>
+        <p className="text-sm text-muted-foreground">
           {healthCheck.isLoading ? "Checando a API…" : healthCheck.data ? "API no ar" : "API fora"}
-        </span>
+        </p>
       </div>
-      <Link to="/dashboard" className="text-sm underline underline-offset-4">
-        Abrir o painel
-      </Link>
     </main>
   );
 }

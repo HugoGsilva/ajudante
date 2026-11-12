@@ -51,3 +51,5 @@ export function createAuth(
 }
 
 export type Session = ReturnType<typeof createAuth>["$Infer"]["Session"];
+
+export { ensureOwnerAccount } from "./owner";
