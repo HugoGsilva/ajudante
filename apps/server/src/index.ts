@@ -15,6 +15,12 @@ import { createUpdateHandler } from "./telegram/handle";
 
 const app = new Hono();
 
+app.onError((error, c) => {
+  console.error(error);
+  const message = error instanceof Error ? error.message : "Erro interno.";
+  return c.json({ message }, 500);
+});
+
 app.use(logger());
 app.use(
   "/*",

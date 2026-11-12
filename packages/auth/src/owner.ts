@@ -1,5 +1,6 @@
 import type { Database } from "@ajudante/db";
 import * as schema from "@ajudante/db/schema/auth";
+import { hashPassword } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
 
 import type { createAuth } from "./index";
@@ -15,8 +16,8 @@ export async function ensureOwnerAccount(
   const password = input.password ?? "";
   if (!email || password.length < 8) return;
 
-  const context = await auth.$context;
-  const hashed = await context.password.hash(password);
+  const hashed = await hashPassword(password);
+  if (!hashed.includes(":")) throw new Error("Hash de senha inesperado.");
   const existing = await database.select().from(schema.user).limit(1);
   const name = input.name?.trim() || "Hugo";
 
