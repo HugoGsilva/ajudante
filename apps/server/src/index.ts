@@ -17,8 +17,7 @@ const app = new Hono();
 
 app.onError((error, c) => {
   console.error(error);
-  const message = error instanceof Error ? error.message : "Erro interno.";
-  return c.json({ message }, 500);
+  return c.json({ message: "Erro interno." }, 500);
 });
 
 app.use(logger());
@@ -33,21 +32,6 @@ app.use(
 );
 
 app.on(["POST", "GET"], "/api/auth/*", async (c) => auth.handler(c.req.raw));
-
-app.post("/debug-signin", async (c) => {
-  try {
-    const body = await c.req.json<{ email: string; password: string }>();
-    const result = await auth.api.signInEmail({
-      body,
-      headers: c.req.raw.headers,
-    });
-    return c.json({ ok: true, email: result.user.email });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    const stack = error instanceof Error ? error.stack?.split("\n").slice(0, 12) : [];
-    return c.json({ message, stack }, 500);
-  }
-});
 
 app.use(
   "/trpc/*",
