@@ -1,6 +1,7 @@
 import { Button } from "@ajudante/ui/components/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@ajudante/ui/components/card";
+import { Field, FieldError, FieldGroup, FieldLabel } from "@ajudante/ui/components/field";
 import { Input } from "@ajudante/ui/components/input";
-import { Label } from "@ajudante/ui/components/label";
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
@@ -51,74 +52,69 @@ export default function SignInForm() {
   }
 
   return (
-    <main className="mx-auto flex min-h-[70svh] w-full max-w-sm flex-col justify-center gap-6 px-4">
-      <div>
-        <p className="text-sm text-muted-foreground">ajudante</p>
-        <h1 className="mt-1 text-3xl font-medium tracking-tight">Entrar</h1>
-      </div>
-
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          form.handleSubmit();
-        }}
-        className="flex flex-col gap-4"
-      >
-        <form.Field name="email">
-          {(field) => (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={field.name}>E-mail</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="email"
-                autoComplete="username"
-                inputMode="email"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-              />
-              {field.state.meta.errors.map((error) => (
-                <p key={error?.message} className="text-sm text-destructive">
-                  {error?.message}
-                </p>
-              ))}
-            </div>
-          )}
-        </form.Field>
-
-        <form.Field name="password">
-          {(field) => (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor={field.name}>Senha</Label>
-              <Input
-                id={field.name}
-                name={field.name}
-                type="password"
-                autoComplete="current-password"
-                enterKeyHint="go"
-                value={field.state.value}
-                onBlur={field.handleBlur}
-                onChange={(event) => field.handleChange(event.target.value)}
-              />
-              {field.state.meta.errors.map((error) => (
-                <p key={error?.message} className="text-sm text-destructive">
-                  {error?.message}
-                </p>
-              ))}
-            </div>
-          )}
-        </form.Field>
-
-        <form.Subscribe selector={(state) => ({ canSubmit: state.canSubmit, isSubmitting: state.isSubmitting })}>
-          {({ canSubmit, isSubmitting }) => (
-            <Button type="submit" className="w-full" disabled={!canSubmit || isSubmitting}>
-              {isSubmitting ? "Entrando…" : "Entrar"}
-            </Button>
-          )}
-        </form.Subscribe>
-      </form>
+    <main className="mx-auto flex min-h-[70svh] w-full max-w-sm flex-col justify-center px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="font-serif text-3xl">Entrar</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              form.handleSubmit();
+            }}
+          >
+            <FieldGroup>
+              <form.Field name="email">
+                {(field) => (
+                  <Field data-invalid={field.state.meta.errors.length > 0 || undefined}>
+                    <FieldLabel htmlFor={field.name}>E-mail</FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="email"
+                      autoComplete="username"
+                      inputMode="email"
+                      aria-invalid={field.state.meta.errors.length > 0}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
+              <form.Field name="password">
+                {(field) => (
+                  <Field data-invalid={field.state.meta.errors.length > 0 || undefined}>
+                    <FieldLabel htmlFor={field.name}>Senha</FieldLabel>
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      type="password"
+                      autoComplete="current-password"
+                      enterKeyHint="go"
+                      aria-invalid={field.state.meta.errors.length > 0}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(event) => field.handleChange(event.target.value)}
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
+              <form.Subscribe selector={(state) => ({ canSubmit: state.canSubmit, isSubmitting: state.isSubmitting })}>
+                {({ canSubmit, isSubmitting }) => (
+                  <Button type="submit" className="w-full" disabled={!canSubmit || isSubmitting}>
+                    {isSubmitting ? "Entrando…" : "Entrar"}
+                  </Button>
+                )}
+              </form.Subscribe>
+            </FieldGroup>
+          </form>
+        </CardContent>
+      </Card>
     </main>
   );
 }

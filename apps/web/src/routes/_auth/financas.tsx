@@ -1,7 +1,20 @@
 import { formatBrl } from "@ajudante/api/brain/money";
 import { currentMonth, zonedNow } from "@ajudante/api/brain/time";
 import { Button } from "@ajudante/ui/components/button";
+import { Card, CardContent, CardDescription, CardHeader } from "@ajudante/ui/components/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@ajudante/ui/components/collapsible";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@ajudante/ui/components/dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@ajudante/ui/components/empty";
+import { Field, FieldGroup, FieldLabel } from "@ajudante/ui/components/field";
 import { Input } from "@ajudante/ui/components/input";
 import { Skeleton } from "@ajudante/ui/components/skeleton";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -9,18 +22,31 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { Choice } from "@/components/choice";
 import { controlClass } from "@/components/control";
+import { MonthSwitch } from "@/components/month-switch";
 import { Page } from "@/components/page";
-import { monthTitle } from "@/lib/month";
 import { queryClient, trpc } from "@/utils/trpc";
 
 export const Route = createFileRoute("/_auth/financas")({
   component: FinancePage,
 });
 
+const SOURCES: Record<string, string> = {
+  web: "manual",
+  nubank_card: "cartão",
+  nubank_account: "conta",
+};
+
+function formatDay(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
 function FinancePage() {
   const [month, setMonth] = useState(() => currentMonth());
-  const [adding, setAdding] = useState(false);
+  const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<"expense" | "income">("expense");
   const [amount, setAmount] = useState("");
   const [categoryId, setCategoryId] = useState("outros");
@@ -30,7 +56,7 @@ function FinancePage() {
 
   const categories = useQuery(trpc.finance.categories.queryOptions());
   const list = useQuery(trpc.finance.list.queryOptions({ month }));
-  const options = kind === "expense" ? categories.data?.expense : categories.data?.income;
+  const options = (kind === "expense" ? categories.data?.expense : categories.data?.income) ?? [];
 
   const invalidate = async () => {
     await queryClient.invalidateQueries();
@@ -40,7 +66,7 @@ function FinancePage() {
       onSuccess: async () => {
         setAmount("");
         setDescription("");
-        setAdding(false);
+        setOpen(false);
         toast.success("Lançamento anotado.");
         await invalidate();
       },
@@ -66,87 +92,88 @@ function FinancePage() {
   );
 
   return (
-    <Page
-      title={monthTitle(month)}
-      action={
-        <input
-          type="month"
-          aria-label="Mês"
-          value={month}
-          onChange={(event) => setMonth(event.target.value)}
-          className={`${controlClass} w-40`}
-        />
-      }
-    >
-      {adding ? (
-        <form
-          className="flex flex-col gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            create.mutate({ kind, amount, categoryId, description, occurredOn });
-          }}
-        >
-          <select
-            value={kind}
-            aria-label="Tipo"
-            onChange={(event) => {
-              const next = event.target.value === "income" ? "income" : "expense";
-              setKind(next);
-              setCategoryId(next === "income" ? "entrada" : "outros");
+    <Page title="Finanças" action={<MonthSwitch month={month} onChange={setMonth} />}>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger render={<Button className="w-full sm:w-auto" />}>Anotar lançamento</DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Anotar lançamento</DialogTitle>
+            <DialogDescription>Entra na lista deste mês.</DialogDescription>
+          </DialogHeader>
+          <form
+            className="flex flex-col gap-4"
+            onSubmit={(event) => {
+              event.preventDefault();
+              create.mutate({ kind, amount, categoryId, description, occurredOn });
             }}
-            className={controlClass}
           >
-            <option value="expense">Gasto</option>
-            <option value="income">Receita</option>
-          </select>
-          <Input
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="12,50"
-            inputMode="decimal"
-            aria-label="Valor"
-          />
-          <select
-            value={categoryId}
-            aria-label="Categoria"
-            onChange={(event) => setCategoryId(event.target.value)}
-            className={controlClass}
-          >
-            {(options ?? []).map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <Input
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-            placeholder="Descrição"
-            aria-label="Descrição"
-          />
-          <input
-            type="date"
-            aria-label="Data"
-            value={occurredOn}
-            onChange={(event) => setOccurredOn(event.target.value)}
-            className={controlClass}
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <Button type="button" variant="outline" onClick={() => setAdding(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={create.isPending}>
-              Anotar
-            </Button>
-          </div>
-        </form>
-      ) : (
-        <Button type="button" className="w-full" onClick={() => setAdding(true)}>
-          Anotar lançamento
-        </Button>
-      )}
+            <FieldGroup>
+              <Field>
+                <FieldLabel>Tipo</FieldLabel>
+                <Choice
+                  label="Tipo"
+                  value={kind}
+                  onChange={(next) => {
+                    const value = next === "income" ? "income" : "expense";
+                    setKind(value);
+                    setCategoryId(value === "income" ? "entrada" : "outros");
+                  }}
+                  options={[
+                    { value: "expense", label: "Gasto" },
+                    { value: "income", label: "Receita" },
+                  ]}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="amount">Valor</FieldLabel>
+                <Input
+                  id="amount"
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  placeholder="12,50"
+                  inputMode="decimal"
+                />
+              </Field>
+              <Field>
+                <FieldLabel>Categoria</FieldLabel>
+                <Choice
+                  label="Categoria"
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  options={options.map((item) => ({ value: item.id, label: item.name }))}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="description">Descrição</FieldLabel>
+                <Input
+                  id="description"
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Padaria"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="occurred-on">Data</FieldLabel>
+                <input
+                  id="occurred-on"
+                  type="date"
+                  value={occurredOn}
+                  onChange={(event) => setOccurredOn(event.target.value)}
+                  className={controlClass}
+                />
+              </Field>
+            </FieldGroup>
+            <DialogFooter>
+              <DialogClose render={<Button type="button" variant="outline" />}>Cancelar</DialogClose>
+              <Button type="submit" disabled={create.isPending}>
+                Anotar
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {list.isLoading ? <Skeleton className="h-40" /> : null}
+      {list.isLoading ? <Skeleton className="h-40 w-full" /> : null}
       {list.isError ? <p className="text-sm text-destructive">{list.error.message}</p> : null}
       {list.data && list.data.length === 0 ? (
         <Empty>
@@ -157,76 +184,89 @@ function FinancePage() {
         </Empty>
       ) : null}
       {list.data && list.data.length > 0 ? (
-        <ul className="flex flex-col divide-y divide-border border-y border-border">
-          {list.data.map((row) => (
-            <li key={row.id} className="flex flex-col gap-2 py-3">
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="text-sm">{row.description}</p>
-                <p className="font-mono text-sm">
-                  {formatBrl(row.kind === "expense" ? -row.amountCents : row.amountCents)}
-                </p>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {row.occurredOn.split("-").reverse().join("/")}
-                {" · "}
-                {row.kind === "transfer" ? "transferência" : row.source}
-              </p>
-              {row.kind === "transfer" ? null : (
-                <select
-                  aria-label={`Categoria de ${row.description}`}
-                  value={row.categoryId ?? ""}
-                  onChange={(event) =>
-                    update.mutate({
-                      id: row.id,
-                      categoryId: event.target.value,
-                      kind: row.kind === "income" ? "income" : "expense",
-                    })
-                  }
-                  className={controlClass}
-                >
-                  {(row.kind === "income" ? categories.data?.income : categories.data?.expense)?.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </li>
-          ))}
-        </ul>
+        <Card className="gap-0 py-0">
+          <ul className="flex flex-col">
+            {list.data.map((row) => {
+              const categoryOptions =
+                (row.kind === "income" ? categories.data?.income : categories.data?.expense) ?? [];
+              return (
+                <li key={row.id} className="flex flex-col gap-2 border-b border-border px-4 py-3 last:border-b-0">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <p className="min-w-0 truncate text-sm">{row.description}</p>
+                    <p
+                      className={`shrink-0 font-mono text-sm tabular-nums ${row.kind === "expense" ? "text-destructive" : "text-foreground"}`}
+                    >
+                      {formatBrl(row.kind === "expense" ? -row.amountCents : row.amountCents)}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-muted-foreground">
+                      {formatDay(row.occurredOn)}
+                      {" · "}
+                      {row.kind === "transfer" ? "transferência" : (SOURCES[row.source] ?? row.source)}
+                    </p>
+                    {row.kind === "transfer" ? null : (
+                      <Choice
+                        label={`Categoria de ${row.description}`}
+                        value={row.categoryId ?? ""}
+                        onChange={(next) =>
+                          update.mutate({
+                            id: row.id,
+                            categoryId: next,
+                            kind: row.kind === "income" ? "income" : "expense",
+                          })
+                        }
+                        options={categoryOptions.map((item) => ({ value: item.id, label: item.name }))}
+                        className="w-full sm:w-48"
+                      />
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Card>
       ) : null}
 
-      <details className="text-sm">
-        <summary className="cursor-pointer text-muted-foreground">Importar CSV do Nubank</summary>
-        <div className="mt-3 flex flex-col gap-3">
-          <p className="text-muted-foreground">
-            Fatura do cartão e extrato da conta são arquivos diferentes. O pagamento da fatura entra como
-            transferência e não soma no gasto.
-          </p>
-          <select
-            aria-label="Tipo de CSV"
-            value={source}
-            onChange={(event) => setSource(event.target.value === "nubank_account" ? "nubank_account" : "nubank_card")}
-            className={controlClass}
-          >
-            <option value="nubank_card">Fatura do cartão</option>
-            <option value="nubank_account">Extrato da conta</option>
-          </select>
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            aria-label="Arquivo CSV"
-            disabled={importCsv.isPending}
-            onChange={async (event) => {
-              const file = event.target.files?.[0];
-              event.target.value = "";
-              if (!file) return;
-              importCsv.mutate({ csv: await file.text(), source });
-            }}
-            className="text-base"
-          />
-        </div>
-      </details>
+      <Card>
+        <Collapsible>
+          <CardHeader>
+            <CollapsibleTrigger className="w-fit text-left text-sm font-medium">
+              Importar CSV do Nubank
+            </CollapsibleTrigger>
+            <CardDescription>
+              Fatura do cartão e extrato da conta são arquivos diferentes. O pagamento da fatura entra como
+              transferência e não soma no gasto.
+            </CardDescription>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="flex flex-col gap-3">
+              <Choice
+                label="Tipo de CSV"
+                value={source}
+                onChange={(next) => setSource(next === "nubank_account" ? "nubank_account" : "nubank_card")}
+                options={[
+                  { value: "nubank_card", label: "Fatura do cartão" },
+                  { value: "nubank_account", label: "Extrato da conta" },
+                ]}
+              />
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                aria-label="Arquivo CSV"
+                disabled={importCsv.isPending}
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  event.target.value = "";
+                  if (!file) return;
+                  importCsv.mutate({ csv: await file.text(), source });
+                }}
+                className="text-base"
+              />
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
     </Page>
   );
 }
